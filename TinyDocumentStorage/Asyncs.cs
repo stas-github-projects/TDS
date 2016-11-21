@@ -12,8 +12,17 @@ namespace TinyDocumentStorage
         {
             bool bool_ret = false;
 
+            int i = 0, icount = document.lst_tag_name.Count;
+            byte b_type;
+            byte[] b_data;
 
+            for (i = 0; i < icount; i++)
+            {
+                b_type = Globals._dataserializer.returnTypeAndRawByteArray(document.lst_tag_value[i], out b_data);
+                
+                Globals.InternalDocument _int = new Globals.InternalDocument();
 
+            }//for
             return await Task.FromResult(bool_ret);
         }
 

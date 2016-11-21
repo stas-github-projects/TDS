@@ -67,15 +67,16 @@ namespace TinyDocumentStorage
 
     public class Document
     {
-        internal Dictionary<string, dynamic> dict_tag_value = new Dictionary<string, dynamic>();
+        internal List<string> lst_tag_name = new List<string>();
+        internal List<dynamic> lst_tag_value = new List<dynamic>();
 
         public Document() { }
         public Document(string tag, dynamic value)
         { this.Add(tag, value); }
         public void Add(string tag, dynamic value)
         {
-            if (this.dict_tag_value.ContainsKey(tag) == false)
-            { this.dict_tag_value.Add(tag, value); }
+            if (this.lst_tag_name.BinarySearch(tag)==0)
+            { this.lst_tag_name.Add(tag); this.lst_tag_value.Add(value); }
         }
     }
 
