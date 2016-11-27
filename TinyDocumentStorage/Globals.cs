@@ -14,6 +14,7 @@ namespace TinyDocumentStorage
         //header [3], version [1], first_index_page_pos [8], last_index_page_pos [8], last_index_page_freecell [2]
         internal static int storage_header_max_len = 4 + 8 + 8 + 2;
         internal static int storage_document_tag_name_len = 20;
+        internal static ulong storage_document_id = 0;
 
         //active = 1, index_doc_id = 8, index_len = 4, index_doc_len = 4
         internal static int storage_index_header_len = 1 + 8 + 4 + 4;
@@ -35,6 +36,7 @@ namespace TinyDocumentStorage
         ///</summary>
         internal class InternalDocument
         {
+            internal int i_document_length = 0;
             internal byte[] document_header;
             internal List<byte[]> lst_document_tag = new List<byte[]>();
 
@@ -49,21 +51,27 @@ namespace TinyDocumentStorage
                 _service.InsertBytes(ref document_header, BitConverter.GetBytes(doc_len), ipos); ipos += 4; //doc_len
             }
             //active [1], data_type [1], tag_name [x], tag_hash [8], tag_value_hash [8]
-            internal void AddDocumentTag (byte data_type, string tag_name, ulong tag_hash, ulong tag_value_hash)
+            internal void AddDocumentTag (byte data_type, string tag_name, ulong tag_hash, ref byte[] tag_value)
             {
                 int ipos = 0;
-                byte[] b_tag_block = new byte[Globals.storage_document_tag_block_len];
+                byte[] b_tag_block = new byte[Globals.storage_document_tag_block_len + tag_value.Length];
                 _service.InsertBytes(ref b_tag_block, (byte)1, ipos); ipos++; //active
                 _service.InsertBytes(ref b_tag_block, data_type, ipos); ipos++; //data_type
                 _service.InsertBytes(ref b_tag_block, Encoding.ASCII.GetBytes(tag_name), ipos); ipos += Globals.storage_document_tag_name_len; //tag_name
                 _service.InsertBytes(ref b_tag_block, BitConverter.GetBytes(tag_hash), ipos); ipos += 8; //tag_hash
-                _service.InsertBytes(ref b_tag_block, BitConverter.GetBytes(tag_value_hash), ipos); ipos += 8; //tag_value_hash
+                _service.InsertBytes(ref b_tag_block, tag_value, ipos); ipos += tag_value.Length; //tag_value_hash
                 lst_document_tag.Add(b_tag_block); //add to list
+                this.i_document_length += ipos;
+            }
+
+            internal int GetFullLength()
+            {
+                return (Globals.storage_document_header_len + this.i_document_length);
             }
 
             internal byte[] ToBytes() //merge header & tags
             {
-                int i = 0, icount = lst_document_tag.Count, ipos = 0, ilen = storage_document_header_len + (icount * Globals.storage_document_tag_block_len);
+                int i = 0, icount = lst_document_tag.Count, ipos = 0, ilen = storage_document_header_len + this.i_document_length; //(icount * Globals.storage_document_tag_block_len);
 
                 byte[] b_buffer = new byte[storage_document_header_len]; //return
                 _service.InsertBytes(ref b_buffer, this.document_header, ipos); ipos += storage_document_header_len; //add header
@@ -81,6 +89,7 @@ namespace TinyDocumentStorage
         ///</summary>
         internal class InternalIndex
         {        //active = 1, index_doc_id = 8, index_len = 4, index_doc_len = 4
+            internal int i_index_length = 0;
             internal byte[] index_header;
             internal List<byte[]> lst_index_tag = new List<byte[]>();
             internal void AddHeader(ulong doc_id, int index_len, int index_doc_len)
@@ -102,7 +111,14 @@ namespace TinyDocumentStorage
                 _service.InsertBytes(ref b_tag_block, BitConverter.GetBytes(tag_hash), ipos); ipos += 8; //tag_hash
                 _service.InsertBytes(ref b_tag_block, BitConverter.GetBytes(tag_value_hash), ipos); ipos += 8; //tag_value_hash
                 lst_index_tag.Add(b_tag_block); //add to list
+                this.i_index_length += ipos;
             }
+
+            internal int GetFullLength()
+            {
+                return (Globals.storage_index_header_len + this.i_index_length);
+            }
+
             internal byte[] ToBytes() //merge header & tags
             {
                 int i = 0, icount = lst_index_tag.Count, ipos = 0, ilen = Globals.storage_index_header_len + (icount * Globals.storage_index_tag_block_len);

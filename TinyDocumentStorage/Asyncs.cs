@@ -13,6 +13,8 @@ namespace TinyDocumentStorage
             bool bool_ret = false;
 
             int i = 0, icount = document.lst_tag_name.Count;
+            ulong u_tag_hash = 0, u_tag_value_hash = 0;
+            long l_time = DateTime.Now.Ticks;
             byte b_type;
             byte[] b_data;
 
@@ -20,15 +22,25 @@ namespace TinyDocumentStorage
             Globals.InternalDocument _doc = new Globals.InternalDocument();
             Globals.InternalIndex _ind = new Globals.InternalIndex();
 
-            //set headers
-            _ind.index_doc_id
             //set tags
             for (i = 0; i < icount; i++)
             {
                 b_type = Globals._dataserializer.returnTypeAndRawByteArray(document.lst_tag_value[i], out b_data);
-                
-                //_int.
+                u_tag_hash = Globals._hash.CreateHash64bit(Encoding.ASCII.GetBytes(document.lst_tag_name[i]));
+                u_tag_value_hash = Globals._hash.CreateHash64bit(b_data);
+                //index
+                _ind.AddIndexTag(b_type, u_tag_hash, u_tag_value_hash);
+                //document
+                _doc.AddDocumentTag(b_type, document.lst_tag_name[i], u_tag_hash, ref b_data);
             }//for
+
+            //set headers: index & document
+            _ind.AddHeader(Globals.storage_document_id, _ind.GetFullLength(),_doc.GetFullLength());
+            _doc.AddHeader(Globals.storage_document_id, l_time, l_time, _doc.GetFullLength());
+
+            //update globals
+            Globals.storage_document_id++;
+
             return await Task.FromResult(bool_ret);
         }
 
